@@ -118,7 +118,7 @@ def process_report(report, url):
             for t in x.select("a"):
                 tags.append(t.get_text())
 
-    locations = []
+    locations = ['München']
     motives = []
     contexts = []
     factums = []
@@ -132,6 +132,7 @@ def process_report(report, url):
         if x in handlung_options:
             factums.append(handlung_options[x])
 
+    # print(url)
     data = dict(
         chronicler_name="München Chronik",
         tags=", ".join(tags),
