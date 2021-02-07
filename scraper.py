@@ -55,6 +55,10 @@ def fetch(url):
     return soup
 
 
+def fetch_json(url):
+    return get_retries.get(url, verbose=True, max_backoff=128).json()
+
+
 # https://stackoverflow.com/a/7160778/4028896
 def is_url(s):
     regex = re.compile(
@@ -67,6 +71,28 @@ def is_url(s):
         re.IGNORECASE,
     )
     return re.match(regex, s) is not None
+
+
+geo_data = {}
+
+
+def setup_geolocations():
+    """
+    There are sometimes multiple locations for one incident. FIXME
+    It's also not guaranteed that there is at least one location for each incident.
+    """
+    jsondata = fetch_json(
+        "https://muenchen-chronik.de/maps/geojson/layer/2,3,11,12,13,18,19,20,21/?full=no&full_icon_url=no&listmarkers=0"
+    )
+    for x in jsondata["features"]:
+        soup = BeautifulSoup(x["properties"]["text"], "lxml")
+        link = soup.find("a").get("href").replace("http://", "").replace("https://", "")
+
+        # assert not link in geo_data, link + str(geo_data)
+        geo_data[link] = {
+            "longitude": x["geometry"]["coordinates"][0],
+            "latitude": x["geometry"]["coordinates"][1],
+        }
 
 
 def process_report(report, url):
@@ -118,7 +144,7 @@ def process_report(report, url):
             for t in x.select("a"):
                 tags.append(t.get_text())
 
-    locations = ['München']
+    locations = ["München"]
     motives = []
     contexts = []
     factums = []
@@ -132,7 +158,12 @@ def process_report(report, url):
         if x in handlung_options:
             factums.append(handlung_options[x])
 
-    # print(url)
+    if url.replace("https://", "") in geo_data:
+        geoloc = geo_data[url.replace("https://", "")]
+    else:
+        print("no geolocation found")
+        geoloc = {}
+
     data = dict(
         chronicler_name="München Chronik",
         tags=", ".join(tags),
@@ -145,6 +176,7 @@ def process_report(report, url):
         date=date,
         rg_id=rg_id,
         url=url,
+        **geoloc
     )
 
     # print(data)
@@ -175,6 +207,9 @@ def process_page(page):
 
     # return "https://response-hessen.de" + next_link.get("href")
 
+
+setup_geolocations()
+print(len(geo_data))
 
 next_url = BASE_URL
 next_url = "https://muenchen-chronik.de/chronik/"
