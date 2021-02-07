@@ -3,7 +3,7 @@ import re
 import dataset
 import get_retries
 from bs4 import BeautifulSoup
-from dateparser import parse
+import dateparser
 
 db = dataset.connect("sqlite:///data.sqlite")
 
@@ -96,20 +96,44 @@ def setup_geolocations():
 
 
 def process_report(report, url):
+    """
+    https://dateparser.readthedocs.io/en/latest/settings.html#handling-incomplete-dates
+    """
     header = report.select_one(".entry-header").get_text()
     if " – " in header:
         header = header.split(" – ")
         date, title = header[:-1], header[-1]
         date = " ".join(date)
-        date = parse(date, languages=["de"])
+        date = dateparser.parse(
+            date,
+            languages=["de"],
+            settings={
+                "STRICT_PARSING": True,
+                "REQUIRE_PARTS": ["day", "month", "year"],
+            },
+        )
 
         if date is None:
-            date2 = parse(header[0], languages=["de"])
+            date2 = dateparser.parse(
+                header[0],
+                languages=["de"],
+                settings={
+                    "STRICT_PARSING": True,
+                    "REQUIRE_PARTS": ["day", "month", "year"],
+                },
+            )
             if date2 is not None:
                 date = date2
                 title = " – ".join(header[1:])
             else:
-                date3 = parse(header[0].split("/")[0], languages=["de"])
+                date3 = dateparser.parse(
+                    header[0].split("/")[0],
+                    languages=["de"],
+                    settings={
+                        "STRICT_PARSING": True,
+                        "REQUIRE_PARTS": ["day", "month", "year"],
+                    },
+                )
                 if date3 is not None:
                     date = date3
                 else:
@@ -118,7 +142,14 @@ def process_report(report, url):
                         print("skip for now")
                         print(report)
                     else:
-                        date4 = parse(header[0].split("/")[1], languages=["de"])
+                        date4 = dateparser.parse(
+                            header[0].split("/")[1],
+                            languages=["de"],
+                            settings={
+                                "STRICT_PARSING": True,
+                                "REQUIRE_PARTS": ["day", "month", "year"],
+                            },
+                        )
                         if date4 is not None:
                             date = date4
                         else:
@@ -126,7 +157,7 @@ def process_report(report, url):
     else:
         date, title = header.split("2017")
         date += "2017"
-        date = parse(date, languages=["de"])
+        date = dateparser.parse(date, languages=["de"])
 
     title = title.strip()
     description = report.select_one(".entry-content").get_text(separator="\n").strip()
