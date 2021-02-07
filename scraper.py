@@ -254,7 +254,8 @@ kontext_options = {}
 for o in soup.select(".sf-field-category option"):
     if o.get("value") == "":
         continue
-    label = o.get_text()
+    # Geocoding get's confused stuff like 'BA 01' so remove it.
+    label = o.get_text()[6:]
     value = "category-" + o.get("value")
     location_options[value] = label
 
