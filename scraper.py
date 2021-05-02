@@ -215,7 +215,7 @@ def process_report(report, url):
     tab_incidents.upsert(data, ["rg_id"])
 
     for s in sources:
-        tab_sources.upsert(s, ["rg_id", "name", "url"])
+        tab_sources.upsert(s, ["rg_id", "name"])
 
 
 def process_page(page):
